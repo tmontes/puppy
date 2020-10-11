@@ -7,7 +7,8 @@ import pprint
 import sys
 import tkinter
 
-import importlib_metadata as ilr
+import importlib_metadata as ilm
+import importlib_resources as ilr
 
 
 
@@ -25,7 +26,7 @@ def _create_window():
     window.geometry(f'{w}x{h}+{x}+{y}')
     window.minsize(w, h)
 
-    meta = ilr.metadata(__package__)
+    meta = ilm.metadata(__package__)
     name = meta['name']
     version = meta['version']
     window.title(f'{name} {version}')
@@ -35,10 +36,29 @@ def _create_window():
 
 def _add_widgets(window):
 
+    top_frame = tkinter.Frame()
+
+    file_path = ilr.files(__package__) / 'logo.png'
+
+    # Must keep reference to PhotoImage, otherwise it doesn't become visible
+    _add_widgets.img = tkinter.PhotoImage(file=file_path)
     tkinter.Label(
-        window,
-        text='Minimal GUI app to test pup.',
+        top_frame,
+        image=_add_widgets.img,
     ).pack(
+        side='left',
+    )
+
+    tkinter.Label(
+        top_frame,
+        text='Minimal GUI app to test pup.',
+        justify=tkinter.LEFT,
+    ).pack(
+        side='left',
+        padx=16,
+    )
+
+    top_frame.pack(
         side='top',
         fill='x',
         padx=16,

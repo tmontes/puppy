@@ -24,7 +24,8 @@ CLASSIFIERS = [
     "Programming Language :: Python :: 3.8",
 ]
 INSTALL_REQUIRES = [
-    "importlib-metadata==1.7.0;python_version<'3.8'",
+    "importlib-metadata==1.7.0",
+    "importlib-resources==3.0.0",
 ]
 EXTRAS_REQUIRE = {
     "docs": [
@@ -84,6 +85,9 @@ if __name__ == "__main__":
         long_description_content_type='text/x-rst',
         packages=setuptools.find_packages(where="src"),
         package_dir={"": "src"},
+        package_data={
+            "": ["*.png"],
+        },
         zip_safe=False,
         classifiers=CLASSIFIERS,
         install_requires=INSTALL_REQUIRES,
