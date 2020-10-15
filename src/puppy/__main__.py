@@ -6,9 +6,17 @@ import os
 import pprint
 import sys
 import tkinter
+import tkinter.ttk
 
 import importlib_metadata as ilm
 import importlib_resources as ilr
+import serial
+import serial.tools.list_ports
+
+
+
+# The serial.Serial object we're connected to, if any.
+_serial = None
 
 
 
@@ -19,8 +27,8 @@ def _create_window():
     screen_w = window.winfo_screenwidth()
     screen_h = window.winfo_screenheight()
 
-    w = screen_w // 3
-    h = screen_h // 3
+    w = (screen_w // 2) - 16
+    h = (screen_h // 2) - 16
     x = (screen_w - w) // 2
     y = (screen_h - h) // 2
     window.geometry(f'{w}x{h}+{x}+{y}')
@@ -34,31 +42,125 @@ def _create_window():
     return window
 
 
-def _add_widgets(window):
 
-    top_frame = tkinter.Frame()
+def _top_frame_widget(window):
+
+    frame = tkinter.Frame()
 
     file_path = ilr.files(__package__) / 'logo.png'
 
     # Must keep reference to PhotoImage, otherwise it doesn't become visible
-    _add_widgets.img = tkinter.PhotoImage(file=file_path)
+    _top_frame_widget.img = tkinter.PhotoImage(file=file_path)
     tkinter.Label(
-        top_frame,
-        image=_add_widgets.img,
+        frame,
+        image=_top_frame_widget.img,
     ).pack(
         side='left',
     )
 
     tkinter.Label(
-        top_frame,
+        frame,
         text='Minimal GUI app to test pup.',
-        justify=tkinter.LEFT,
+        justify='left',
     ).pack(
         side='left',
         padx=16,
     )
 
-    top_frame.pack(
+    return frame
+
+
+
+def _bottom_frame_widget(window, log_lines):
+
+    frame = tkinter.Frame()
+
+    text_input = tkinter.Entry(frame)
+    text_input.pack(side='left', fill='x', expand=True)
+    text_input.bind('<Return>', lambda _: _write_to_serial(text_input, log_lines))
+    text_input.focus()
+
+    serial_select = tkinter.ttk.Combobox(
+        frame,
+        state='readonly',
+    )
+    serial_select.set('[select serial port]')
+    serial_select.pack(side='left')
+    window.after(1000, lambda: _populate_serial_ports(window, serial_select, log_lines))
+
+    return frame
+
+
+def _write_to_serial(text_input, log_lines):
+
+    log = lambda s: log_lines([s])
+
+    if not _serial:
+        log('No serial port open.')
+        return
+
+    _serial.write(text_input.get().encode('utf8')+b'\r\n')
+    text_input.delete(0, 'end')
+
+
+
+def _populate_serial_ports(window, serial_select, log_lines):
+
+    serial_devices = [
+        port.device
+        for port in serial.tools.list_ports.comports()
+    ]
+    serial_select['values'] = serial_devices
+    log_lines([
+        'Serial devices:',
+        *map(lambda s: f'    {s!r}', serial_devices),
+        '',
+    ])
+
+    serial_select.bind(
+        '<<ComboboxSelected>>',
+        lambda _: _select_serial_port(window, serial_select.get(), log_lines),
+    )
+
+
+
+def _select_serial_port(window, serial_device, log_lines):
+
+    global _serial
+
+    log = lambda s: log_lines([s])
+
+    if _serial:
+        log(f'Closing {_serial.name!r}.')
+        _serial.close()
+    log(f'Opening {serial_device!r}.')
+    try:
+        _serial = serial.Serial(serial_device, 115200, timeout=0.05)
+    except Exception as exc:
+        log(f'Failed: {exc}.')
+        _serial = None
+        return
+
+    log(f'Opened {_serial.name!r}:')
+    log('')
+    _serial.write(b'\x02')
+    window.after(100, lambda: _read_serial_port(window, log))
+
+
+def _read_serial_port(window, log):
+
+    if _serial:
+        line = _serial.readline()
+        if line:
+            text_line = line.decode('utf8', errors='replace').rstrip('\r\n')
+            log(f'| {text_line}')
+    window.after(100, lambda: _read_serial_port(window, log))
+
+
+
+def _add_widgets(window):
+
+    _top_frame_widget(window).pack(
         side='top',
         fill='x',
         padx=16,
@@ -75,41 +177,31 @@ def _add_widgets(window):
         padx=8,
         pady=8,
     )
-    log_widget.focus_set()
+    # log_widget.focus_set()
     log_widget.pack(side='top', fill='both', expand=True, padx=16)
 
-    tkinter.Button(
-        window,
-        text='Quit',
-        pady=8,
-        command=window.destroy,
-    ).pack(
-        side='bottom',
-        fill='both',
+    def log_lines(lines):
+        log_widget.configure(state=tkinter.NORMAL)
+        for line in lines:
+            log_widget.insert('end', f'{line}\n')
+        log_widget.yview('end')
+        log_widget.configure(state=tkinter.DISABLED)
+        window.update()
+
+    _bottom_frame_widget(window, log_lines).pack(
+        side='top',
+        fill='x',
         padx=16,
         pady=16,
     )
 
-    return log_widget
-
-
-def _log_lines(window, log_widget, lines):
-
-    log_widget.configure(state=tkinter.NORMAL)
-    for line in lines:
-        log_widget.insert('end', f'{line}\n')
-    log_widget.yview('end')
-    log_widget.configure(state=tkinter.DISABLED)
-
-    window.update()
+    return log_lines
 
 
 def main():
 
     window = _create_window()
-    log_widget = _add_widgets(window)
-
-    log_lines = lambda l: _log_lines(window, log_widget, l)
+    log_lines = _add_widgets(window)
 
     log_lines([
         'os.getcwd():',
@@ -117,6 +209,7 @@ def main():
         '',
         'sys.path:',
         *map(lambda s: f'    {s!r}', sys.path),
+        '',
     ])
 
     tkinter.mainloop()

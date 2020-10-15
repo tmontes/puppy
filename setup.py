@@ -26,6 +26,7 @@ CLASSIFIERS = [
 INSTALL_REQUIRES = [
     "importlib-metadata==1.7.0",
     "importlib-resources==3.0.0",
+    "pyserial==3.4",
 ]
 EXTRAS_REQUIRE = {
     "docs": [
