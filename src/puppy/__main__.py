@@ -7,6 +7,7 @@ import pprint
 import sys
 import tkinter
 import tkinter.ttk
+import tkinter.filedialog
 
 import importlib_metadata as ilm
 import importlib_resources as ilr
@@ -85,8 +86,14 @@ def _bottom_frame_widget(window, log_lines):
         state='readonly',
     )
     serial_select.set('[select serial port]')
-    serial_select.pack(side='left')
+    serial_select.pack(side='left', padx=(10, 0))
     window.after(1000, lambda: _populate_serial_ports(window, serial_select, log_lines))
+
+    load_button = tkinter.Button(frame, text='Load', padx=10, command=lambda: _load_file(log_lines))
+    load_button.pack(side='left', padx=(10, 0))
+
+    save_button = tkinter.Button(frame, text='Save', padx=10, command=lambda: _save_file(log_lines))
+    save_button.pack(side='left')
 
     return frame
 
@@ -156,6 +163,43 @@ def _read_serial_port(window, log):
             log(f'| {text_line}')
     window.after(100, lambda: _read_serial_port(window, log))
 
+
+
+def _load_file(log_lines):
+
+    log = lambda s: log_lines([s])
+
+    filename = tkinter.filedialog.askopenfilename()
+    log(f'Opening {filename!r} in read mode...')
+    try:
+        with open(filename, 'rb') as f:
+            log(f'Reading 128 bytes...')
+            payload = f.read(128)
+    except OSError as e:
+        log(f'Failed: {e}.')
+    else:
+        log(f'Read {payload!r}.')
+    finally:
+        log('')
+
+
+def _save_file(log_lines):
+
+    log = lambda s: log_lines([s])
+
+    filename = tkinter.filedialog.asksaveasfilename()
+    log(f'Opening {filename!r} in write mode...')
+    payload = b'puppy wrote this file!\n'
+    try:
+        with open(filename, 'wb') as f:
+            log(f'Writing payload...')
+            f.write(payload)
+    except OSError as e:
+        log(f'Failed: {e}.')
+    else:
+        log(f'Wrote {payload!r}.')
+    finally:
+        log('')
 
 
 def _add_widgets(window):
