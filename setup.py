@@ -87,7 +87,7 @@ if __name__ == "__main__":
         packages=setuptools.find_packages(where="src"),
         package_dir={"": "src"},
         package_data={
-            "": ["*.png", "*.txt"],
+            "": ["*.png"],
         },
         zip_safe=False,
         classifiers=CLASSIFIERS,

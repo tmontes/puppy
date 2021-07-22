@@ -2,7 +2,7 @@
 Puppy - A minimal GUI app to test pup.
 """
 
-__version__ = '1.7.0'
+__version__ = '1.8.0'
 
 __title__ = 'puppy'
 __description__ = 'Puppy, a minimal GUI app to test pup'
