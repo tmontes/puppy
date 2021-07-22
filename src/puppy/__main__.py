@@ -247,10 +247,6 @@ def main():
     window = _create_window()
     log_lines = _add_widgets(window)
 
-    hello_txt_path = ilr.files(__package__) / 'hello.txt'
-    with open(hello_txt_path, 'rt') as hello_file:
-        log_lines(hello_file.readlines())
-
     log_lines([
         'os.getcwd():',
         f'    {os.getcwd()!r}',
