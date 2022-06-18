@@ -248,6 +248,9 @@ def main():
     log_lines = _add_widgets(window)
 
     log_lines([
+        'sys.version:',
+        f'    {sys.version!r}',
+        '',
         'os.getcwd():',
         f'    {os.getcwd()!r}',
         '',
